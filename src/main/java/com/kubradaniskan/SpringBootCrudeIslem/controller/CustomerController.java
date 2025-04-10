@@ -5,10 +5,12 @@ import com.kubradaniskan.SpringBootCrudeIslem.model.ApiResponse;
 import com.kubradaniskan.SpringBootCrudeIslem.service.ICustomerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.SQLException;
 import java.util.List;
 
 @RestController
@@ -19,8 +21,9 @@ public class CustomerController {
 
     private final ICustomerService customerService;
 
-    // Constructor Injection ile bağımlılığı alıyoruz
+    // Constructor Injection ile bağımlılık alma
     public CustomerController(ICustomerService customerService) {
+
         this.customerService = customerService;
     }
 
@@ -28,17 +31,21 @@ public class CustomerController {
     @PostMapping("/save")
     public ResponseEntity<Object> addCustomer(@RequestBody Customer customer) {
         try {
-            // Müşteri eklenmeye çalışılıyor
+
             customerService.addCustomer(customer);
 
-            // Eğer hata yoksa, işlem başarılı
-            return new ResponseEntity<>(new ApiResponse("Müşteri başarıyla eklendi.", customer), HttpStatus.CREATED);
+            return new ResponseEntity<>(new ApiResponse("Müşteri başarıyla eklendi.", customer),
+                    HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
-            // Eğer müşteri adı veya soyadı boşsa veya aynı müşteri varsa
-            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null), HttpStatus.BAD_REQUEST);
+
+            // Aynı müşteri varsa
+            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null),
+                    HttpStatus.BAD_REQUEST);
         } catch (RuntimeException e) {
-            // Veritabanı hatası veya genel hata
-            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null), HttpStatus.INTERNAL_SERVER_ERROR);
+
+            // Veri tabanı için kontrol
+            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
     }
@@ -47,24 +54,27 @@ public class CustomerController {
     @GetMapping("/all")
     public ResponseEntity<Object> getAllCustomer() {
         try {
-            logger.info("Tüm müşteriler getiriliyor...");
+            logger.info("Müşteriler getiriliyor...");
 
             List<Customer> allCustomer = customerService.findAllCustomer();
 
             if (allCustomer.isEmpty()) {
-                throw new IllegalArgumentException("Veritabanında müşteri bulunamadı.");
+                throw new IllegalArgumentException("Veri tabanında müşteri bulunamadı.");
             }
 
             logger.info("Müşteri listesi başarıyla getirildi: toplam müşteri: {}", allCustomer.size());
 
-            return new ResponseEntity<>(new ApiResponse("Tüm müşteriler başarıyla getirildi", allCustomer), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse("Tüm müşteriler başarıyla getirildi", allCustomer),
+                    HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
             logger.error("Hata: {}", e.getMessage());
-            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null),
+                    HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             logger.error("Müşteri listesi alınırken bir hata oluştu: {}", e.getMessage());
-            return new ResponseEntity<>(new ApiResponse("Müşteri listesi alınırken bir hata oluştu.", null), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ApiResponse("Müşteri listesi alınırken bir hata oluştu.", null),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -89,7 +99,8 @@ public class CustomerController {
             return new ResponseEntity<>(new ApiResponse(e.getMessage(), null), HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             logger.error("Müşteri bulunurken bir hata oluştu: {}", e.getMessage());
-            return new ResponseEntity<>(new ApiResponse("Müşteri bulunurken bir hata oluştu.", null), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ApiResponse("Müşteri bulunurken bir hata oluştu.", null),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -99,44 +110,86 @@ public class CustomerController {
         try {
             logger.info("Müşteri siliniyor, id: {}", id);
 
-            // Müşteri silme işlemi
+            // Müşteri silme
             customerService.deleteCustomerById(id);
 
             logger.info("Müşteri başarıyla silindi, id: {}", id);
 
-            return new ResponseEntity<>(new ApiResponse("Müşteri başarıyla silindi", null), HttpStatus.ACCEPTED);
+            return new ResponseEntity<>(new ApiResponse("Müşteri başarıyla silindi", null),
+                    HttpStatus.ACCEPTED);
 
         } catch (IllegalArgumentException e) {
             logger.error("Hata: {}", e.getMessage());
-            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null),
+                    HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             logger.error("Müşteri silinirken bir hata oluştu: {}", e.getMessage());
-            return new ResponseEntity<>(new ApiResponse("Müşteri silinirken bir hata oluştu.", null), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ApiResponse("Müşteri silinirken bir hata oluştu.", null),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    // İSİM VE/VEYA SOYADLA MÜŞTERİ ARAMA
+    // MÜŞTERİ ARAMA
     @PostMapping("/search")
     public ResponseEntity<Object> searchCustomer(@RequestBody SearchRequest searchRequest) {
         try {
+            //trim(boşluk silme) .isEmpty() de tırnak içindeki boşluğu da boşluk kabul ediyor.
             if ((searchRequest.getName() == null || searchRequest.getName().trim().isEmpty()) &&
                     (searchRequest.getSurname() == null || searchRequest.getSurname().trim().isEmpty())) {
                 throw new IllegalArgumentException("Boş değer girildi.");
             }
 
-            List<Customer> customers = customerService.searchCustomer(searchRequest.getName(), searchRequest.getSurname());
+            List<Customer> customers = customerService.searchCustomer(searchRequest.getName(),
+                    searchRequest.getSurname());
 
             if (customers.isEmpty()) {
                 throw new IllegalArgumentException("Aradığınız kriterlere uygun müşteri bulunamadı.");
             }
 
-            return new ResponseEntity<>(new ApiResponse("Müşteriler başarıyla bulundu", customers), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse("Müşteriler başarıyla bulundu", customers),
+                    HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
+
             logger.error("Hata: {}", e.getMessage());
-            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null), HttpStatus.BAD_REQUEST);
+
+            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null),
+                    HttpStatus.BAD_REQUEST);
+
         } catch (Exception e) {
+
             logger.error("Arama yapılırken bir hata oluştu: {}", e.getMessage());
-            return new ResponseEntity<>(new ApiResponse("Arama yapılırken bir hata oluştu.", null), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ApiResponse("Arama yapılırken bir hata oluştu.", null),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    /***
+     * DataAccessException veri tabanı hatası olduğunda çalıştırılıyor.
+     * ResponseEntity<Object> HTTP cevabını temsil eder.
+     * @param ex
+     * @return
+     */
+    // Veri tabanı bağlantısı hatası için kontrol
+    @ExceptionHandler(DataAccessException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ResponseEntity<Object> handleDatabaseException(DataAccessException ex)
+    {
+        logger.error("Veri tabanı bağlantısı hatası: {}", ex.getMessage());
+
+        return new ResponseEntity<>(new ApiResponse("Veri tabanı bağlantısı koptu. Lütfen tekrar deneyin.", null),
+                HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    // SQL hataları için
+    @ExceptionHandler(SQLException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+
+    public ResponseEntity<Object> handleSQLException(SQLException ex) {
+
+        logger.error("SQL hatası: {}", ex.getMessage());
+
+        return new ResponseEntity<>(new ApiResponse("Veri tabanı bağlantısı koptu. Lütfen tekrar deneyin.", null),
+                HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
 }
