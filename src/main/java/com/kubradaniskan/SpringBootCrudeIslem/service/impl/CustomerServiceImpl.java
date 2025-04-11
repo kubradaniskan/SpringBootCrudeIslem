@@ -18,7 +18,7 @@ public class CustomerServiceImpl implements ICustomerService {
 
 
     /***
-     * throw new fırlatmak için kullanılır.
+     * throw new hata fırlatmak için kullanılır.
      * IllegalArgumentException parametrelerin yanlış olması durumunda hata fırlatmak için
      * @param customer
      * @return
@@ -88,7 +88,8 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public Customer getCustomerById(Long customerId) {
-        try {
+        try
+        {
             return customerRepository.findById(customerId).orElse(null);
 
         }
