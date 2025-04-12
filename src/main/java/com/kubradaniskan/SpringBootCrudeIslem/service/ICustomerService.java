@@ -14,8 +14,13 @@ public interface ICustomerService {
 
     void deleteCustomerById(Long customerId);
 
+    void deleteAllCustomer();
+
     // Name ve surname ile müşteri var mı kontrolü
     boolean existsByNameAndSurname(String name, String surname);
 
     List<Customer> searchCustomer(String name, String surname);
+
+
+    List<Customer> searchCustomerLetter(String name);
 }

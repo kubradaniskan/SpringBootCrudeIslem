@@ -18,4 +18,10 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
 
     // İsim ve soyad ile müşteri var mı kontrolü
     boolean existsByNameAndSurname(String name, String surname);
+
+
+    //name ve surname ile ... başlayanı bulma
+    //findbyNameStartName gibi bir değer yazıldığında hata verdi springe uygun yazılmalı
+    List<Customer> findByNameStartingWith(String name);
+    List<Customer> findBySurnameStartingWith(String surname);
 }

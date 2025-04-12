@@ -40,8 +40,7 @@ public class CustomerServiceImpl implements ICustomerService {
             }
 
             // Aynı isim ve soyad ile bir müşteri olup olmadığını kontrol et
-            if (customerRepository.existsByNameAndSurname(customer.getName(), customer.getSurname()))
-            {
+            if (customerRepository.existsByNameAndSurname(customer.getName(), customer.getSurname())) {
                 throw new IllegalArgumentException("Bu isim ve soyad ile bir müşteri zaten mevcut.");
             }
 
@@ -54,9 +53,7 @@ public class CustomerServiceImpl implements ICustomerService {
 
             throw new RuntimeException("Veritabanı bağlantısı hatası. Lütfen tekrar deneyin.", e);
 
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
 
 
             throw e;
@@ -74,13 +71,11 @@ public class CustomerServiceImpl implements ICustomerService {
 
             return customerRepository.findAll();
 
-        }
-        catch (DataAccessException e) {
+        } catch (DataAccessException e) {
 
             throw new RuntimeException("Veri tabanı bağlantısı hatası. Lütfen tekrar deneyin.", e);
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
 
             throw new RuntimeException("Müşteriler alınırken bir hata oluştu.", e);
         }
@@ -88,17 +83,13 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public Customer getCustomerById(Long customerId) {
-        try
-        {
+        try {
             return customerRepository.findById(customerId).orElse(null);
 
-        }
-        catch (DataAccessException e)
-        {
+        } catch (DataAccessException e) {
             throw new RuntimeException("Veri tabanı bağlantısı hatası. Lütfen tekrar deneyin.", e);
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
 
             throw new RuntimeException("Müşteri bilgisi alınırken bir hata oluştu.", e);
         }
@@ -121,11 +112,22 @@ public class CustomerServiceImpl implements ICustomerService {
 
             throw new RuntimeException("Veri tabanı bağlantısı hatası. Lütfen tekrar deneyin.", e);
 
-        }
-
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new RuntimeException("Müşteri silinirken bir hata oluştu.", e);
+        }
+    }
+
+    @Override
+    public void deleteAllCustomer() {
+
+        try
+        {
+            customerRepository.deleteAll();
+
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Veri tabanı bağlantısında bir problem yaşandı. Lütfen tekrar deneyiniz.", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Tüm müşteriler silinirken bir hata oluştu.", e);
         }
     }
 
@@ -165,6 +167,29 @@ public class CustomerServiceImpl implements ICustomerService {
         } catch (DataAccessException e) {
             throw new RuntimeException("Veri tabanı bağlantısı hatası. Lütfen tekrar deneyin.", e);
 
+        }
+        catch (Exception e) {
+
+            throw new RuntimeException("Müşteri arama işlemi sırasında bir hata oluştu.", e);
+        }
+    }
+
+    @Override
+    public List<Customer> searchCustomerLetter(String letter){
+        try{
+
+            List<Customer> nameControl = customerRepository.findByNameStartingWith(letter);
+            List<Customer> surnameControl= customerRepository.findBySurnameStartingWith(letter);
+
+            //ad ve soyadı birleştirmek gerek
+            List<Customer> allCustomer= new ArrayList<>();
+            allCustomer.addAll(nameControl);
+            allCustomer.addAll(surnameControl);
+
+            return allCustomer;
+        } catch (DataAccessException e) {
+
+            throw new RuntimeException("Veri tabanı bağlantı hatası. Lütfen tekrar deneyiniz.", e);
         }
         catch (Exception e) {
 

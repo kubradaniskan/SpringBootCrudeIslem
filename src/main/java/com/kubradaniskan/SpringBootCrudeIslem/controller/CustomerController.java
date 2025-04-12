@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -69,7 +70,7 @@ public class CustomerController {
 
         } catch (IllegalArgumentException e) {
             logger.error("Hata: {}", e.getMessage());
-            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null),
+            return new ResponseEntity<>(new ApiResponse(e.getMessage(), "Hiç müşteri bulunmamakta.s"),
                     HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             logger.error("Müşteri listesi alınırken bir hata oluştu: {}", e.getMessage());
@@ -128,6 +129,33 @@ public class CustomerController {
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    //TÜM MÜŞTERİLERİ SİLME
+    @DeleteMapping("/delete/all")
+        public ResponseEntity<Object> deleteAllCustomer(){
+            try
+            {
+            logger.info("Tüm müşteriler siliniyor...");
+
+            customerService.deleteAllCustomer();
+
+            logger.info("Tüm müşteriler başarıyla silindi");
+
+            return new ResponseEntity<>(new ApiResponse("Tüm müşteriler başarıyla silindi","Silme işlemi başarılı"),
+                    HttpStatus.ACCEPTED);
+            }
+            catch(Exception e) {
+
+                logger.info("Tüm müşteriler silinirken bir hata oluştu! {}", e.getMessage());
+
+                return new ResponseEntity<>(new ApiResponse("Tüm müşteriler silinirken hata oluştu","Silme işlemi başarısız"),
+                HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+
+        }
+
+
     // MÜŞTERİ ARAMA
     @PostMapping("/search")
     public ResponseEntity<Object> searchCustomer(@RequestBody SearchRequest searchRequest) {
@@ -163,6 +191,44 @@ public class CustomerController {
         }
     }
 
+    @PostMapping("searchLetter")
+    public ResponseEntity<Object> searchCustomerLetter(@RequestBody SearchRequest searchRequest) {
+        try {
+            if ((searchRequest.getName() == null || searchRequest.getName().trim().isEmpty()) &&
+                    (searchRequest.getSurname() == null || searchRequest.getSurname().trim().isEmpty())) {
+                throw new IllegalArgumentException("Lütfen aramak için bir harf giriniz.");
+            }
+
+            List<Customer> customers = customerService.searchCustomerLetter(searchRequest.getName());
+
+            if (customers.isEmpty()) {
+
+                throw new IllegalArgumentException("Aradığınız harfle başlayan müşteri bulunmamaktadır.");
+
+            }
+
+            return new ResponseEntity<>(new ApiResponse("Müşteriler başarıyla bulundu", customers),
+                    HttpStatus.OK);
+        }
+        catch(IllegalArgumentException e) {
+
+            logger.error("Hata: {}", e.getMessage());
+            return new ResponseEntity<>(new ApiResponse(e.getMessage(), "Arama işlemi başarısız."),
+                    HttpStatus.BAD_REQUEST);
+
+
+        }
+        catch (Exception e) {
+
+            logger.error("Arama yapılırken bir hata oluştu: {}", e.getMessage());
+            return new ResponseEntity<>(new ApiResponse("Arama yapılırken hata oluştu.", "Arama işlemi başarısız."),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+
+
+            }
+        }
+
+
     /***
      * DataAccessException veri tabanı hatası olduğunda çalıştırılıyor.
      * ResponseEntity<Object> HTTP cevabını temsil eder.
@@ -193,3 +259,4 @@ public class CustomerController {
     }
 
 }
+
