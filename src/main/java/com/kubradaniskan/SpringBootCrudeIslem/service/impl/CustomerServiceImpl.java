@@ -64,6 +64,35 @@ public class CustomerServiceImpl implements ICustomerService {
         }
     }
 
+    @Override
+    public Customer updateCustomer(Long id, Customer updatedCustomer) {
+        try {
+            Customer existingCustomer = customerRepository.findById(id).orElse(null);
+            if (existingCustomer == null) {
+                throw new IllegalArgumentException("Güncellenecek müşteri bulunamadı.");
+            }
+
+            if (updatedCustomer.getName() != null && !updatedCustomer.getName().trim().isEmpty()) {
+                existingCustomer.setName(updatedCustomer.getName());
+            }
+
+            if (updatedCustomer.getSurname() != null && !updatedCustomer.getSurname().trim().isEmpty()) {
+                existingCustomer.setSurname(updatedCustomer.getSurname());
+            }
+
+            return customerRepository.save(existingCustomer);
+
+        }
+        catch (DataAccessException e) {
+            throw new RuntimeException("Veri tabanı hatası oluştu. Lütfen tekrar deneyiniz.", e);
+
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException("Müşteri güncellenirken bir hata oluştu.", e);
+        }
+    }
+
 
     @Override
     public List<Customer> findAllCustomer() {
@@ -144,7 +173,7 @@ public class CustomerServiceImpl implements ICustomerService {
         }
         catch (Exception e) {
 
-            throw new RuntimeException("Veri tabanı hatası oluştu.", e);
+            throw new RuntimeException("Arama yapılırken bir hata oluştu.", e);
         }
     }
 
@@ -187,6 +216,7 @@ public class CustomerServiceImpl implements ICustomerService {
             allCustomer.addAll(surnameControl);
 
             return allCustomer;
+
         } catch (DataAccessException e) {
 
             throw new RuntimeException("Veri tabanı bağlantı hatası. Lütfen tekrar deneyiniz.", e);

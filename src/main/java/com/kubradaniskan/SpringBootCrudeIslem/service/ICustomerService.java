@@ -8,6 +8,8 @@ public interface ICustomerService {
 
     Customer addCustomer(Customer customer);
 
+    Customer updateCustomer(Long id, Customer updatedCustomer);
+
     List<Customer> findAllCustomer();
 
     Customer getCustomerById(Long customerId);
@@ -20,7 +22,6 @@ public interface ICustomerService {
     boolean existsByNameAndSurname(String name, String surname);
 
     List<Customer> searchCustomer(String name, String surname);
-
 
     List<Customer> searchCustomerLetter(String name);
 }

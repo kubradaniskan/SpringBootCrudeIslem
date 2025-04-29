@@ -28,6 +28,8 @@ public class CustomerController {
         this.customerService = customerService;
     }
 
+
+
     // YENİ MÜŞTERİ KAYDETME
     @PostMapping("/save")
     public ResponseEntity<Object> addCustomer(@RequestBody Customer customer) {
@@ -49,6 +51,29 @@ public class CustomerController {
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
+    }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<Object> updateCustomer(@PathVariable("id") Long id, @RequestBody Customer updatedCustomer) {
+        try {
+            logger.info("Müşteri güncelleniyor, ID: {}", id);
+
+            Customer updated = customerService.updateCustomer(id, updatedCustomer);
+
+            return new ResponseEntity<>(new ApiResponse("Müşteri başarıyla güncellendi.", updated),
+                    HttpStatus.OK);
+        } 
+        catch (IllegalArgumentException e) {
+            logger.error("Güncelleme hatası: {}", e.getMessage());
+            return new ResponseEntity<>(new ApiResponse(e.getMessage(), "Güncellemede hata oluştu."),
+                    HttpStatus.NOT_FOUND);
+        }
+        catch (Exception e)
+        {
+            logger.error("Müşteri güncellenirken hata oluştu: {}", e.getMessage());
+            return new ResponseEntity<>(new ApiResponse("Müşteri güncellenirken hata oluştu.", "Güncelleme başarısız"),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     // TÜM MÜŞTERİLERİ GETİRME
@@ -93,11 +118,13 @@ public class CustomerController {
 
             logger.info("Müşteri bulundu: {}", customerById);
 
-            return new ResponseEntity<>(new ApiResponse("Müşteri bulundu", customerById), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse("Müşteri bulundu", customerById),
+                    HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
             logger.error("Hata: {}", e.getMessage());
-            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ApiResponse(e.getMessage(), null),
+                    HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             logger.error("Müşteri bulunurken bir hata oluştu: {}", e.getMessage());
             return new ResponseEntity<>(new ApiResponse("Müşteri bulunurken bir hata oluştu.", "Beklenmeyen hata"),
@@ -229,12 +256,7 @@ public class CustomerController {
         }
 
 
-    /***
-     * DataAccessException veri tabanı hatası olduğunda çalıştırılıyor.
-     * ResponseEntity<Object> HTTP cevabını temsil eder.
-     * @param ex
-     * @return
-     */
+
     // Veri tabanı bağlantısı hatası için kontrol
     @ExceptionHandler(DataAccessException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
