@@ -10,6 +10,7 @@ public interface ICustomerService {
 
     Customer updateCustomer(Long id, Customer updatedCustomer);
 
+
     List<Customer> findAllCustomer();
 
     Customer getCustomerById(Long customerId);

@@ -1,14 +1,19 @@
 package com.kubradaniskan.SpringBootCrudeIslem.service.impl;
 
 import com.kubradaniskan.SpringBootCrudeIslem.entity.Customer;
+import com.kubradaniskan.SpringBootCrudeIslem.exception.DatabaseConnectionException;
+import com.kubradaniskan.SpringBootCrudeIslem.exception.ResourceNotFoundException;
 import com.kubradaniskan.SpringBootCrudeIslem.repository.CustomerRepository;
 import com.kubradaniskan.SpringBootCrudeIslem.service.ICustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class CustomerServiceImpl implements ICustomerService {
@@ -16,214 +21,143 @@ public class CustomerServiceImpl implements ICustomerService {
     @Autowired
     private CustomerRepository customerRepository;
 
+    @Autowired
+    private MessageSource messageSource;
 
-    /***
-     * throw new hata fırlatmak için kullanılır.
-     * IllegalArgumentException parametrelerin yanlış olması durumunda hata fırlatmak için
-     * @param customer
-     * @return
-     */
+    // MessageSource ile dil desteği sağlanıyor
+    private String getMessage(String key, Object... args) {
+        Locale locale = LocaleContextHolder.getLocale();  //kullanıcının dil tercihine göre hata dönmesi
+        return messageSource.getMessage(key, args, locale);
+    }
+
     @Override
     public Customer addCustomer(Customer customer) {
         try {
-            // Adın boşluk kontrolü
+            //müşteri adı boş ise
             if (customer.getName() == null || customer.getName().trim().isEmpty()) {
-
-                throw new IllegalArgumentException("Müşteri adı boş olamaz.");
-
+                throw new IllegalArgumentException(getMessage("error.customer.name.empty"));
             }
-
-            // Soyad boşluk kontrolü
+            //müşteri soyadı boş ise
             if (customer.getSurname() == null || customer.getSurname().trim().isEmpty()) {
-
-                throw new IllegalArgumentException("Müşteri soyadı boş olamaz.");
+                throw new IllegalArgumentException(getMessage("error.customer.surname.empty"));
             }
 
-            // Aynı isim ve soyad ile bir müşteri olup olmadığını kontrol et
+            //Müşteri var ise
             if (customerRepository.existsByNameAndSurname(customer.getName(), customer.getSurname())) {
-                throw new IllegalArgumentException("Bu isim ve soyad ile bir müşteri zaten mevcut.");
+                throw new IllegalArgumentException(getMessage("error.customer.exists"));
             }
 
-            // Veri tabanına yeni müşteri kaydet
             return customerRepository.save(customer);
-
-        } catch (DataAccessException e) {
-
-            // Veri tabanı kontrolü
-
-            throw new RuntimeException("Veritabanı bağlantısı hatası. Lütfen tekrar deneyin.", e);
-
-        } catch (IllegalArgumentException e) {
-
-
-            throw e;
-
-        } catch (Exception e) {
-
-            throw new RuntimeException("Müşteri eklenirken bir hata oluştu.", e);
+        } catch (DataAccessException ex) {
+            // Veri tabanı bağlantısı hatası
+            throw new DatabaseConnectionException(getMessage("error.database.connection"));
         }
     }
+
 
     @Override
     public Customer updateCustomer(Long id, Customer updatedCustomer) {
         try {
-            Customer existingCustomer = customerRepository.findById(id).orElse(null);
-            if (existingCustomer == null) {
-                throw new IllegalArgumentException("Güncellenecek müşteri bulunamadı.");
-            }
+            //güncellenecek kullanıcı yok ise
+            Customer existingCustomer = customerRepository.findById(id).orElseThrow(() ->
+                    new ResourceNotFoundException(getMessage("error.customer.notfound", id)));
 
-            if (updatedCustomer.getName() != null && !updatedCustomer.getName().trim().isEmpty()) {
+            if (updatedCustomer.getName() != null) {
                 existingCustomer.setName(updatedCustomer.getName());
             }
-
-            if (updatedCustomer.getSurname() != null && !updatedCustomer.getSurname().trim().isEmpty()) {
+            if (updatedCustomer.getSurname() != null) {
                 existingCustomer.setSurname(updatedCustomer.getSurname());
             }
 
             return customerRepository.save(existingCustomer);
+        } catch (DataAccessException ex) {
 
-        }
-        catch (DataAccessException e) {
-            throw new RuntimeException("Veri tabanı hatası oluştu. Lütfen tekrar deneyiniz.", e);
-
-        }
-        catch (Exception e)
-        {
-            throw new RuntimeException("Müşteri güncellenirken bir hata oluştu.", e);
+            throw new DatabaseConnectionException(getMessage("error.database.connection"));
         }
     }
-
 
     @Override
     public List<Customer> findAllCustomer() {
         try {
-
             return customerRepository.findAll();
 
-        } catch (DataAccessException e) {
+        }
+        catch (DataAccessException ex) {
 
-            throw new RuntimeException("Veri tabanı bağlantısı hatası. Lütfen tekrar deneyin.", e);
-
-        } catch (Exception e) {
-
-            throw new RuntimeException("Müşteriler alınırken bir hata oluştu.", e);
+            throw new DatabaseConnectionException(getMessage("error.database.connection"));
         }
     }
 
     @Override
     public Customer getCustomerById(Long customerId) {
         try {
-            return customerRepository.findById(customerId).orElse(null);
+            return customerRepository.findById(customerId).orElseThrow(() ->
+                    new ResourceNotFoundException(getMessage("error.customer.notfound", customerId)));
+        }
+        catch (DataAccessException ex)
+        {
 
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Veri tabanı bağlantısı hatası. Lütfen tekrar deneyin.", e);
-
-        } catch (Exception e) {
-
-            throw new RuntimeException("Müşteri bilgisi alınırken bir hata oluştu.", e);
+            throw new DatabaseConnectionException(getMessage("error.database.connection"));
         }
     }
 
     @Override
     public void deleteCustomerById(Long id) {
-        try {
-            // Müşteri var mı kontrol ediyoruz.
-            Customer customer = customerRepository.findById(id).orElse(null);
+        try
+        {
+            Customer customer = customerRepository.findById(id).orElseThrow(() ->
+                    new ResourceNotFoundException(getMessage("error.customer.notfound.delete", id)));
+            customerRepository.delete(customer);
+        }
+        catch (DataAccessException ex) {
 
-            if (customer == null) {
-                throw new IllegalArgumentException("Müşteri bulunamadı.");
-            }
-
-            // Eğer müşteri varsa, sil
-            customerRepository.deleteById(id);
-
-        } catch (DataAccessException e) {
-
-            throw new RuntimeException("Veri tabanı bağlantısı hatası. Lütfen tekrar deneyin.", e);
-
-        } catch (Exception e) {
-            throw new RuntimeException("Müşteri silinirken bir hata oluştu.", e);
+            throw new DatabaseConnectionException(getMessage("error.database.connection"));
         }
     }
 
     @Override
     public void deleteAllCustomer() {
-
         try
         {
             customerRepository.deleteAll();
+        }
+        catch (DataAccessException ex) {
 
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Veri tabanı bağlantısında bir problem yaşandı. Lütfen tekrar deneyiniz.", e);
-        } catch (Exception e) {
-            throw new RuntimeException("Tüm müşteriler silinirken bir hata oluştu.", e);
+            throw new DatabaseConnectionException(getMessage("error.database.connection"));
         }
     }
 
     @Override
     public boolean existsByNameAndSurname(String name, String surname) {
-
         try {
-            // Postman ad soyad ile arama
+
             return customerRepository.existsByNameAndSurname(name, surname);
-        } catch (DataAccessException e) {
-
-            throw new RuntimeException("Veri tabanı bağlantısı hatası. Lütfen tekrar deneyin.", e);
-
         }
-        catch (Exception e) {
+        catch (DataAccessException ex) {
 
-            throw new RuntimeException("Arama yapılırken bir hata oluştu.", e);
+            throw new DatabaseConnectionException(getMessage("error.database.connection"));
         }
     }
 
     @Override
     public List<Customer> searchCustomer(String name, String surname) {
         try {
-            if (name != null && !name.trim().isEmpty() && surname != null && !surname.trim().isEmpty()) {
-                return customerRepository.findByNameAndSurname(name, surname);
-            }
-
-            if (name != null && !name.trim().isEmpty()) {
-                return customerRepository.findByName(name);
-            }
-
-            if (surname != null && !surname.trim().isEmpty()) {
-                return customerRepository.findBySurname(surname);
-            }
-
-            return new ArrayList<>();
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Veri tabanı bağlantısı hatası. Lütfen tekrar deneyin.", e);
-
+            return customerRepository.findByNameAndSurname(name, surname);
         }
-        catch (Exception e) {
+        catch (DataAccessException ex) {
 
-            throw new RuntimeException("Müşteri arama işlemi sırasında bir hata oluştu.", e);
+            throw new DatabaseConnectionException(getMessage("error.database.connection"));
         }
     }
 
     @Override
-    public List<Customer> searchCustomerLetter(String letter){
-        try{
-
-            List<Customer> nameControl = customerRepository.findByNameStartingWith(letter);
-            List<Customer> surnameControl= customerRepository.findBySurnameStartingWith(letter);
-
-            //ad ve soyadı birleştirmek gerek
-            List<Customer> allCustomer= new ArrayList<>();
-            allCustomer.addAll(nameControl);
-            allCustomer.addAll(surnameControl);
-
-            return allCustomer;
-
-        } catch (DataAccessException e) {
-
-            throw new RuntimeException("Veri tabanı bağlantı hatası. Lütfen tekrar deneyiniz.", e);
+    public List<Customer> searchCustomerLetter(String letter) {
+        try {
+            return customerRepository.findByNameStartingWith(letter);
         }
-        catch (Exception e) {
+        catch (DataAccessException ex) {
 
-            throw new RuntimeException("Müşteri arama işlemi sırasında bir hata oluştu.", e);
+            throw new DatabaseConnectionException(getMessage("error.database.connection"));
         }
     }
 }

@@ -1,0 +1,30 @@
+<configuration>
+
+    <!-- RollingFileAppender logları zaman tabanlı döndürmektedir. -->
+    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/app-log-%d{yyyy-MM-dd}.log</file>
+
+        <!-- Zaman tabanlı döngü ile eski logları tutma -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/app-log-%d{yyyy-MM-dd}.log</fileNamePattern>
+
+            <!-- 30 gün boyunca logları sakladığımızı belirtiyor -->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+
+        <!-- logback.encoder JSON formatında log döndürülmesi için encoder kullanılıyormuş-->
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+    </appender>
+
+    <!-- Consoleda bizim kontrolümüz için JSON formatında log -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+    </appender>
+
+    <!-- Root log seviyesini INFO olarak belirledik ve logları file ve console'a yönlendirdik -->
+    <root level="INFO">
+        <appender-ref ref="ROLLING"/>
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>
